@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTelegram - Messenger</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #0f0f0f; color: #fff; }
+        #chat { height: 80vh; overflow-y: auto; padding: 20px; background: #1a1a1a; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 10px; max-width: 70%; }
+        .message.me { background: #0088cc; align-self: flex-end; margin-left: auto; }
+        .message.other { background: #333; }
+        #input-area { display: flex; padding: 10px; background: #1a1a1a; position: fixed; bottom: 0; width: 100%; }
+        input { flex: 1; padding: 10px; border: none; border-radius: 20px; }
+        button { padding: 10px 20px; background: #0088cc; border: none; color: white; border-radius: 20px; margin-left: 10px; }
+        .sidebar { width: 250px; background: #111; height: 100vh; position: fixed; padding: 20px; }
+        .main { margin-left: 270px; }
+        .header { background: #111; padding: 10px; display: flex; align-items: center; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>PyTelegram</h2>
+        <div>Chats</div>
+        <ul id="users"></ul>
+    </div>
+    <div class="main">
+        <div class="header">
+            <h2>General Chat</h2>
+        </div>
+        <div id="chat"></div>
+        <div id="input-area">
+            <input type="text" id="username" placeholder="Your username" value="User1">
+            <input type="text" id="message" placeholder="Type a message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const chat = document.getElementById('chat');
+        let username = document.getElementById('username').value;
+
+        function addMessage(data, isMe = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isMe ? 'me' : 'other'}`;
+            msgDiv.innerHTML = `<strong>${data.username}</strong>: ${data.message} <small>${new Date(data.timestamp).toLocaleTimeString()}</small>`;
+            chat.appendChild(msgDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        socket.on('receive_message', (data) => {
+            addMessage(data);
+        });
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const msg = messageInput.value.trim();
+            username = document.getElementById('username').value.trim() || 'Anonymous';
+            
+            if (msg) {
+                socket.emit('send_message', { username: username, message: msg });
+                messageInput.value = '';
+                // Optimistic UI
+                addMessage({username: username, message: msg, timestamp: new Date().toISOString()}, true);
+            }
+        }
+
+        // Load previous messages
+        fetch('/messages')
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(msg => addMessage(msg));
+            });
+
+        // Enter key support
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>

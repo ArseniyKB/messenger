@@ -1,0 +1,21 @@
+name: CD - Deploy to Render
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Render
+      uses: johnwbyrd/render-deploy-action@v1.0.2
+      with:
+        api-key: ${{ secrets.RENDER_API_KEY }}
+        service-id: ${{ secrets.RENDER_SERVICE_ID }}
+        # Optional: wait for deployment
+        wait-for-deployment: true
